@@ -1,6 +1,7 @@
 /* =====================================================
    STRIDE — Run Tracker (Advanced Edition)
    Vanilla JS. No frameworks, no build step.
+<<<<<<< HEAD
    Persistence: localStorage + Firebase Cloud Firestore.
    ===================================================== */
 
@@ -167,6 +168,46 @@ const Storage = {
     return runs;
   }
 };
+=======
+   Persistence: localStorage.
+   ===================================================== */
+
+(() => {
+  'use strict';
+
+  /* ═══════════════════ STORAGE LAYER ═══════════════════ */
+  const STORAGE_KEY = 'stride_runs_v2';
+
+  const Storage = {
+    getRuns(){
+      try{
+        // migrate v1 data
+        const v1 = localStorage.getItem('stride_runs_v1');
+        const v2 = localStorage.getItem(STORAGE_KEY);
+        if(!v2 && v1){
+          localStorage.setItem(STORAGE_KEY, v1);
+          return JSON.parse(v1);
+        }
+        return v2 ? JSON.parse(v2) : [];
+      } catch(e){ return []; }
+    },
+    saveRuns(runs){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(runs)); }
+      catch(e){ console.error('Could not save runs', e); }
+    },
+    addRun(run){
+      const runs = Storage.getRuns();
+      runs.push(run);
+      Storage.saveRuns(runs);
+      return runs;
+    },
+    deleteRun(id){
+      const runs = Storage.getRuns().filter(r => r.id !== id);
+      Storage.saveRuns(runs);
+      return runs;
+    }
+  };
+>>>>>>> 2e28bd529c2fa295ab66d08a9872467155b2995e
 
   /* ═══════════════════ GEO UTILITIES ═══════════════════ */
   function haversineKm(a, b){
@@ -1456,9 +1497,12 @@ const Storage = {
     UI.renderStreak();
     UI.renderHistory();
 
+<<<<<<< HEAD
     // Trigger initial Firebase sync
     syncWithFirebase();
 
+=======
+>>>>>>> 2e28bd529c2fa295ab66d08a9872467155b2995e
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(
         pos => {
@@ -1473,4 +1517,9 @@ const Storage = {
     }
   }
 
+<<<<<<< HEAD
   document.addEventListener('DOMContentLoaded', init);
+=======
+  document.addEventListener('DOMContentLoaded', init);
+})();
+>>>>>>> 2e28bd529c2fa295ab66d08a9872467155b2995e

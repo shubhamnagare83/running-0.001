@@ -86,6 +86,7 @@ input{ font-family: inherit; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+<<<<<<< HEAD
 .topbar-chips{
   display: flex;
   align-items: center;
@@ -123,6 +124,8 @@ input{ font-family: inherit; }
   50% { opacity: 1; transform: scale(1.08); }
 }
 
+=======
+>>>>>>> 2e28bd529c2fa295ab66d08a9872467155b2995e
 .streak-chip{
   display:flex;
   align-items:center;
