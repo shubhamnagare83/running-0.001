@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>STRIDE — Run Tracker</title>
+<meta name="description" content="STRIDE — A premium GPS run tracking app with advanced maps, pace analytics, and training insights." />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===================== APP SHELL ===================== -->
+<div class="app">
+
+  <!-- ---------- TOP BAR ---------- -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">STRIDE</span>
+      <span class="brand-sub">run log</span>
+    </div>
+    <div class="streak-chip" id="streakChip">
+      <span class="streak-flame">🔥</span>
+      <span class="streak-num" id="streakNum">0</span>
+      <span class="streak-label">day streak</span>
+    </div>
+  </header>
+
+  <!-- ---------- VIEWS ---------- -->
+  <main class="views">
+
+    <!-- ===== TRACK VIEW ===== -->
+    <section class="view view--track active" id="view-track">
+
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-fade-top"></div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+          <button class="map-ctrl-btn" id="btnMapLayer" title="Change map style">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2 2 8.5 12 15l10-6.5L12 2Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 15.5 12 22l10-6.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+          <button class="map-ctrl-btn" id="btnRecenter" title="Re-center on GPS">
+            <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button class="map-ctrl-btn" id="btnZoomIn" title="Zoom in">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button class="map-ctrl-btn" id="btnZoomOut" title="Zoom out">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <!-- Live Speed -->
+        <div class="speed-pill hidden" id="speedPill">
+          <span class="speed-value mono" id="speedValue">0.0</span>
+          <span class="speed-unit">km/h</span>
+        </div>
+
+        <!-- GPS Pill -->
+        <div class="gps-pill" id="gpsPill">
+          <span class="gps-dot"></span>
+          <span id="gpsText">Locating…</span>
+        </div>
+
+        <!-- Map layer label -->
+        <div class="layer-label hidden" id="layerLabel">Dark</div>
+
+        <!-- Shimmer loading -->
+        <div class="map-shimmer" id="mapShimmer">
+          <div class="shimmer-wave"></div>
+        </div>
+      </div>
+
+      <div class="track-panel">
+        <div class="lane-ring-wrap">
+          <svg class="lane-ring" viewBox="0 0 220 220">
+            <circle class="lane-track" cx="110" cy="110" r="98"/>
+            <circle class="lane-glow" id="laneGlow" cx="110" cy="110" r="98"/>
+            <circle class="lane-progress" id="laneProgress" cx="110" cy="110" r="98"/>
+          </svg>
+          <div class="lane-center">
+            <span class="lane-time" id="liveTime">00:00</span>
+            <span class="lane-time-label">duration</span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-block">
+            <span class="stat-value mono" id="liveDistance">0.00</span>
+            <span class="stat-unit">km</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-block">
+            <span class="stat-value mono" id="livePace">0:00</span>
+            <span class="stat-unit">min/km</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-block">
+            <span class="stat-value mono" id="liveCal">0</span>
+            <span class="stat-unit">kcal</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <button class="btn btn-ghost" id="btnLap" disabled>Lap</button>
+          <button class="btn btn-record" id="btnRecord">
+            <span class="btn-record-dot"></span>
+            <span id="btnRecordLabel">Start Run</span>
+          </button>
+          <button class="btn btn-ghost" id="btnPause" disabled>Pause</button>
+        </div>
+
+        <button class="btn btn-finish hidden" id="btnFinish">Finish &amp; Save</button>
+      </div>
+    </section>
+
+    <!-- ===== HISTORY VIEW ===== -->
+    <section class="view view--history" id="view-history">
+      <div class="section-head">
+        <h1>Run Log</h1>
+        <p class="section-sub">Every lap, logged.</p>
+      </div>
+
+      <div class="totals-strip" id="totalsStrip">
+        <div class="totals-card">
+          <span class="totals-value mono" id="totalKm">0.0</span>
+          <span class="totals-label">total km</span>
+        </div>
+        <div class="totals-card">
+          <span class="totals-value mono" id="totalRuns">0</span>
+          <span class="totals-label">runs</span>
+        </div>
+        <div class="totals-card">
+          <span class="totals-value mono" id="bestStreak">0</span>
+          <span class="totals-label">best streak</span>
+        </div>
+      </div>
+
+      <div class="heatmap-card">
+        <div class="heatmap-head">
+          <span>Last 12 weeks</span>
+          <span class="heatmap-legend">
+            <i class="hm-swatch hm-0"></i><i class="hm-swatch hm-1"></i><i class="hm-swatch hm-2"></i><i class="hm-swatch hm-3"></i>
+          </span>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+      </div>
+
+      <div class="history-list" id="historyList">
+        <!-- run cards injected here -->
+      </div>
+
+      <div class="empty-state hidden" id="emptyHistory">
+        <p class="empty-title">No runs yet</p>
+        <p class="empty-sub">Hit Start Run and lay down your first track.</p>
+      </div>
+    </section>
+
+    <!-- ===== STATS VIEW ===== -->
+    <section class="view view--stats" id="view-stats">
+      <div class="section-head">
+        <h1>Statistics</h1>
+        <p class="section-sub">Your training at a glance.</p>
+      </div>
+
+      <div class="stats-grid">
+        <!-- Weekly Chart -->
+        <div class="stats-card stats-card--wide">
+          <div class="stats-card-head">
+            <span class="stats-card-title">Weekly Distance</span>
+            <span class="stats-card-sub">Last 8 weeks</span>
+          </div>
+          <div class="weekly-chart" id="weeklyChart"></div>
+        </div>
+
+        <!-- Personal Records -->
+        <div class="stats-card">
+          <div class="stats-card-head">
+            <span class="stats-card-title">Personal Records</span>
+          </div>
+          <div class="pr-list" id="prList"></div>
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="stats-card">
+          <div class="stats-card-head">
+            <span class="stats-card-title">This Month</span>
+          </div>
+          <div class="monthly-summary" id="monthlySummary"></div>
+        </div>
+
+        <!-- Pace Distribution -->
+        <div class="stats-card stats-card--wide">
+          <div class="stats-card-head">
+            <span class="stats-card-title">Pace Distribution</span>
+            <span class="stats-card-sub">All runs</span>
+          </div>
+          <div class="pace-chart" id="paceChart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RUN DETAIL VIEW ===== -->
+    <section class="view view--detail" id="view-detail">
+      <button class="back-btn" id="btnBackFromDetail">← Back</button>
+      <div id="detailContent"></div>
+    </section>
+
+  </main>
+
+  <!-- ---------- BOTTOM NAV ---------- -->
+  <nav class="bottombar">
+    <button class="navbtn active" data-view="track">
+      <svg viewBox="0 0 24 24" class="navicon"><path d="M12 2 2 8.5 12 15l10-6.5L12 2Z"/><path d="M2 15.5 12 22l10-6.5"/><path d="M2 12 12 18.5 22 12" opacity="0.5"/></svg>
+      <span>Track</span>
+    </button>
+    <button class="navbtn" data-view="history">
+      <svg viewBox="0 0 24 24" class="navicon"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      <span>Log</span>
+    </button>
+    <button class="navbtn" data-view="stats">
+      <svg viewBox="0 0 24 24" class="navicon"><path d="M4 20V10M10 20V4M16 20v-8M22 20v-4"/></svg>
+      <span>Stats</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ---------- SAVE RUN MODAL ---------- -->
+<div class="modal-overlay hidden" id="saveModal">
+  <div class="modal">
+    <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+    <p class="modal-eyebrow">Run complete</p>
+    <h2 class="modal-title" id="modalDistance">0.00 km</h2>
+    <p class="modal-sub" id="modalSummary">in 0:00 · 0:00 /km</p>
+    <div class="modal-pr hidden" id="modalPR">
+      <span class="pr-badge">🏆 NEW PR!</span>
+      <span class="pr-detail" id="prDetail"></span>
+    </div>
+    <label class="modal-label" for="runNote">Name this run (optional)</label>
+    <input type="text" id="runNote" class="modal-input" placeholder="Morning loop, river path…" maxlength="40" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnDiscard">Discard</button>
+      <button class="btn btn-record" id="btnSaveRun">Save Run</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
